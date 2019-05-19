@@ -1,3 +1,9 @@
+# Universidad del Valle de Guatemala
+# Graficas por computadora
+# Maria Fernanda Estrada 14198
+# Proyecto model viewer
+# 18/05/2019
+
 import random
 import numpy
 import glm
@@ -7,6 +13,9 @@ from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 from math import *
 
+
+
+# Shaders
 vertex_shader = """
 #version 330
 layout (location = 0) in vec4 position;
@@ -29,11 +38,16 @@ void main()
 
     gl_Position = projection * view * model * position;
 
-    vertexColor = color * intensity;
+    if (color[0] == 155 && color[1] == 155 && color[2] == 155){
+        vertexColor = color;
+    }else{
+        vertexColor = color * intensity;
+    }
     vertexTexcoords = texcoords;
 }
 """
 
+# Shaders
 fragment_shader = """
 #version 330
 
@@ -47,10 +61,22 @@ uniform sampler2D tex;
 void main()
 {
     vec4 textureColor = texture(tex, vertexTexcoords);
-    diffuseColor = vertexColor * textureColor;
+    if (vertexColor[0] == 155 && vertexColor[1] == 155 && vertexColor[2] == 155){
+        diffuseColor[0] = textureColor[2];
+        diffuseColor[1] = textureColor[0];
+        diffuseColor[2] = textureColor[1];
+        diffuseColor[3] = 255;
+    }else{
+        diffuseColor = vertexColor * textureColor;
+    }
 }
 """
 
+
+# Variable para invertir el color del modelo
+invert = False
+
+# Leer y mostrar modelo
 def glize(node):
     model = node.transformation.astype(numpy.float32)
 
@@ -105,8 +131,13 @@ def glize(node):
         glUniformMatrix4fv(
             glGetUniformLocation(shader, "projection"), 1, GL_FALSE, glm.value_ptr(projection)
         )
+        
+        global invert
 
         diffuse = mesh.material.properties['diffuse']
+
+        if invert:
+            diffuse = (155,155,155)
 
         glUniform4f(
             glGetUniformLocation(shader, "color"),
@@ -124,7 +155,7 @@ def glize(node):
     for child in node.children:
         glize(child)
 
-
+# Configuraciones
 clock = pygame.time.Clock()
 
 screen = pygame.display.set_mode((800, 600), pygame.OPENGL|pygame.DOUBLEBUF)
@@ -160,7 +191,7 @@ while True:
 
     pygame.display.flip()
 
-
+    # Para las teclas de control
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit()
@@ -198,6 +229,11 @@ while True:
                 if distancia < 25:
                     camera.z = cos(angulo) * distancia
                     camera.x = sin(angulo) * distancia
+            elif event.key == pygame.K_c:
+                if invert:
+                    invert = False
+                else:
+                    invert = True
 
 
     clock.tick(15)
